@@ -1,6 +1,6 @@
 {
   "name": "iobroker.energy-schedule",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Energy scheduling adapter using Corrently GrünstromIndex",
   "author": {
     "name": "STROMDAO GmbH",
