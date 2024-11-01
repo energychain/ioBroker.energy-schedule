@@ -1,12 +1,12 @@
 {
   "name": "iobroker.energy-schedule",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Energy scheduling adapter using Corrently GrünstromIndex",
   "author": {
     "name": "STROMDAO GmbH",
     "email": "dev@stromdao.com"
   },
-  "homepage": "https://github.com/energychain/iobroker.energy-schedule#readme",
+  "homepage": "https://github.com/energychain/ioBroker.energy-schedule#readme",
   "license": "MIT",
   "keywords": [
     "ioBroker",
@@ -17,7 +17,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/energychain/iobroker.energy-schedule.git"
+    "url": "git+https://github.com/energychain/ioBroker.energy-schedule.git"
   },
   "engines": {
     "node": ">= 12"
