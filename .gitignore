@@ -128,3 +128,11 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+.git
+.idea
+node_modules
+nbproject
+.vs*/
+*.code-workspace
+Thumbs.db
+.DS_Store

@@ -1,0 +1,17 @@
+.git
+.idea
+node_modules
+nbproject
+.vs*/
+*.code-workspace
+Thumbs.db
+gulpfile.js
+.travis.yml
+.travis.yaml
+appveyor.yml
+appveyor.yaml
+.travis.yaml
+test/
+travis/
+.gitignore
+.npmignore

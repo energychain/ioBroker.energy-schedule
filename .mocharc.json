@@ -1,0 +1,10 @@
+{
+    "require": [
+        "test/mocha.setup.js"
+    ],
+    "watch-files": [
+        "*.js",
+        "lib/**/*.js",
+        "test/**/*.js"
+    ]
+}

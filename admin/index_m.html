@@ -1,0 +1,121 @@
+<!-- admin/index_m.html -->
+<html>
+
+<head>
+    <!-- Load ioBroker scripts and styles-->
+    <link rel="stylesheet" type="text/css" href="../../css/adapter.css" />
+    <link rel="stylesheet" type="text/css" href="../../lib/css/materialize.css">
+
+    <script type="text/javascript" src="../../lib/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="../../socket.io/socket.io.js"></script>
+
+    <script type="text/javascript" src="../../js/translate.js"></script>
+    <script type="text/javascript" src="../../lib/js/materialize.js"></script>
+    <script type="text/javascript" src="../../js/adapter-settings.js"></script>
+
+    <!-- Load our own files -->
+    <script type="text/javascript" src="words.js"></script>
+
+    <script type="text/javascript">
+        // This will be called by the admin adapter when the settings page loads
+        function load(settings, onChange) {
+            // Fill in the fields
+            $('#zip').val(settings.zip || '');
+            $('#personalToken').val(settings.personalToken || '');
+            $('#law').val(settings.law || 'comfort');
+            $('#activeHours').val(settings.activeHours || '1');
+            $('#coverageHours').val(settings.coverageHours || '24');
+            $('#consecutiveHours').prop('checked', settings.consecutiveHours !== false);
+
+            // Initialize Materialize select
+            $('select').formSelect();
+
+            // Initialize all the Materialize labels + input fields
+            M.updateTextFields();
+
+            // Register onChange handlers
+            $('#zip').on('change', () => onChange());
+            $('#personalToken').on('change', () => onChange());
+            $('#law').on('change', () => onChange());
+            $('#activeHours').on('change', () => onChange());
+            $('#coverageHours').on('change', () => onChange());
+            $('#consecutiveHours').on('change', () => onChange());
+
+            onChange(false);
+        }
+
+        // This will be called by the admin adapter when the user presses the save button
+        function save(callback) {
+            // Get all the settings
+            var obj = {
+                zip: $('#zip').val(),
+                personalToken: $('#personalToken').val(),
+                law: $('#law').val(),
+                activeHours: parseInt($('#activeHours').val()) || 1,
+                coverageHours: parseInt($('#coverageHours').val()) || 24,
+                consecutiveHours: $('#consecutiveHours').prop('checked')
+            };
+
+            // Save the settings
+            callback(obj);
+        }
+    </script>
+</head>
+
+<body>
+    <div class="m adapter-container">
+        <div class="row">
+            <div class="col s12">
+                <div class="row">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="zip" type="text">
+                        <label for="zip" class="translate">ZIP (Postleitzahl)</label>
+                        <span class="helper-text translate">Enter your German postal code</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="personalToken" type="password">
+                        <label for="personalToken" class="translate">Personal Token</label>
+                        <span class="helper-text translate">Your Corrently API token from console.corrently.io</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12 m6 l4">
+                        <select class="value" id="law">
+                            <option value="comfort" class="translate">Comfort</option>
+                            <option value="price" class="translate">Price</option>
+                            <option value="co2" class="translate">CO2</option>
+                        </select>
+                        <label for="law" class="translate">Optimization Strategy</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="activeHours" type="number" min="1" max="24">
+                        <label for="activeHours" class="translate">Active Hours</label>
+                        <span class="helper-text translate">Number of hours the schedule should be active</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12 m6 l4">
+                        <input class="value" id="coverageHours" type="number" min="1" max="48">
+                        <label for="coverageHours" class="translate">Coverage Hours</label>
+                        <span class="helper-text translate">Total hours to schedule ahead</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col s12 m6 l4">
+                        <label>
+                            <input class="value" id="consecutiveHours" type="checkbox" />
+                            <span class="translate">Consecutive Hours</span>
+                        </label>
+                        <span class="helper-text translate">Whether hours must be consecutive</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

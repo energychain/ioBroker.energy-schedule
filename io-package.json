@@ -1,0 +1,81 @@
+{
+    "common": {
+        "name": "energy-schedule",
+        "version": "0.5.0",
+        "news": {
+            "0.5.0": {
+                "en": "Initial release",
+                "de": "Erstveröffentlichung"
+            }
+        },
+        "title": "Energy Schedule",
+        "titleLang": {
+            "en": "Energy Schedule",
+            "de": "Energie-Zeitplan"
+        },
+        "desc": {
+            "en": "Schedule energy consumption using Corrently GreenPowerIndex",
+            "de": "Energieverbrauch mit dem Corrently GrünstromIndex planen"
+        },
+        "authors": [
+            "STROMDAO GmbH <dev@stromdao.com>"
+        ],
+        "keywords": [
+            "energy",
+            "schedule",
+            "corrently",
+            "gruenstromindex"
+        ],
+        "license": "MIT",
+        "platform": "Javascript/Node.js",
+        "main": "main.js",
+        "icon": "energy-schedule.png",
+        "enabled": true,
+        "extIcon": "https://raw.githubusercontent.com/energychain/iobroker.energy-schedule/master/admin/energy-schedule.png",
+        "readme": "https://github.com/energychain/iobroker.energy-schedule/blob/master/README.md",
+        "loglevel": "info",
+        "mode": "daemon",
+        "type": "energy",
+        "compact": true,
+        "connectionType": "cloud",
+        "dataSource": "push",
+        "materialize": true,
+        "dependencies": [
+            {
+                "js-controller": ">=3.3.22"
+            }
+        ]
+    },
+    "native": {
+        "zip": "",
+        "personalToken": "",
+        "law": "comfort",
+        "activeHours": 1,
+        "coverageHours": 24,
+        "consecutiveHours": true
+    },
+    "objects": [],
+    "instanceObjects": [
+        {
+            "_id": "info",
+            "type": "channel",
+            "common": {
+                "name": "Information"
+            },
+            "native": {}
+        },
+        {
+            "_id": "info.connection",
+            "type": "state",
+            "common": {
+                "role": "indicator.connected",
+                "name": "If connected to Corrently API",
+                "type": "boolean",
+                "read": true,
+                "write": false,
+                "def": false
+            },
+            "native": {}
+        }
+    ]
+}
