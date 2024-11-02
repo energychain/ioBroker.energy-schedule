@@ -28,10 +28,17 @@ class EnergySchedule extends utils.Adapter {
             await this.setStateAsync('info.connection', { val: false, ack: true });
     
             this.log.debug(`Config values: ${JSON.stringify(this.config)}`);
+            
+            // Validate ZIP code
+            if (!this.config.zip) {
+                this.log.error("No ZIP code configured!");
+                return;
+            }
     
             // Initialize client configuration
             const clientConfig = {
-                appid: "0xb61DD55F0DDA7C17975a82dd18EAeD8C025a64ea"
+                appid: "0xb61DD55F0DDA7C17975a82dd18EAeD8C025a64ea",
+                zip: this.config.zip // Add ZIP to client config
             };
     
             if (this.config.personalToken) {
@@ -46,170 +53,178 @@ class EnergySchedule extends utils.Adapter {
                 this.log.debug(`Initializing Corrently client with config: ${JSON.stringify(clientConfig)}`);
                 this.client = new CorrentlyClient(clientConfig);
                 
-                // Test the connection with correct method
-                const testConnection = await this.client.strommix.getEnergyMix("last7days");
-                this.log.debug(`API Test response: ${JSON.stringify(testConnection)}`);
+                // Test the connection with correct method and ZIP
+                const testConnection = await this.client.strommix.getEnergyMix({
+                    zip: this.config.zip,
+                    timeframe: "last7days"
+                });
+                
+                if (!testConnection) {
+                    throw new Error("No response from API");
+                }
+                
+                this.log.debug(`API Test response received: ${JSON.stringify(testConnection)}`);
                 
                 // Mark connection as established
                 await this.setStateAsync('info.connection', { val: true, ack: true });
                 this.log.info("Successfully connected to Corrently API");
     
+                // Create states after successful connection
+                await this.createStates();
+    
+                // Start schedule check interval
+                this.scheduleCheckInterval = setInterval(() => {
+                    this.checkScheduleStatus();
+                }, 60000); // Check every minute
+    
+                // Initial schedule creation if requirements are set
+                await this.createInitialSchedule();
+    
             } catch (apiError) {
                 this.log.error(`Failed to connect to Corrently API: ${apiError.message}`);
+                if (apiError.response) {
+                    this.log.error(`API Response: ${JSON.stringify(apiError.response.data)}`);
+                }
                 await this.setStateAsync('info.connection', { val: false, ack: true });
                 return;
             }
-    
-            // Create states
-            await this.createStates();
-    
-            // Start schedule check interval
-            this.scheduleCheckInterval = setInterval(() => {
-                this.checkScheduleStatus();
-            }, 60000); // Check every minute
-    
-            // Initial schedule creation if requirements are set
-            await this.createInitialSchedule();
             
         } catch (error) {
             this.log.error(`Initialization error: ${error.message}`);
+            if (error.stack) this.log.debug(`Stack: ${error.stack}`);
             await this.setStateAsync('info.connection', { val: false, ack: true });
         }
     }
 
     async createStates() {
-        await this.setObjectNotExistsAsync("status.scheduleId", {
-            type: "state",
-            common: {
-                name: "Current Schedule ID",
-                type: "string",
-                role: "text",
-                read: true,
-                write: false
-            },
-            native: {}
-        });
+        try {
+            // Erstelle zuerst die Channels
+            await this.setObjectNotExistsAsync("requirements", {
+                type: "channel",
+                common: {
+                    name: "Schedule Requirements"
+                },
+                native: {}
+            });
     
-        // Create states for configuration and status
-        await this.setObjectNotExistsAsync("requirements", {
-            type: "channel",
-            common: {
-                name: "Schedule Requirements"
-            },
-            native: {}
-        });
-
-        await this.setObjectNotExistsAsync("requirements.energyDemand", {
-            type: "state",
-            common: {
-                name: "Energy Demand",
-                type: "number",
-                role: "value",
-                unit: "kWh",
-                read: true,
-                write: true
-            },
-            native: {}
-        });
-
-        await this.setObjectNotExistsAsync("requirements.maxLoad", {
-            type: "state",
-            common: {
-                name: "Maximum Load",
-                type: "number",
-                role: "value",
-                unit: "W",
-                read: true,
-                write: true
-            },
-            native: {}
-        });
-
-        await this.setObjectNotExistsAsync("requirements.avgLoad", {
-            type: "state",
-            common: {
-                name: "Average Load",
-                type: "number",
-                role: "value",
-                unit: "W",
-                read: true,
-                write: true
-            },
-            native: {}
-        });
-
-        await this.setObjectNotExistsAsync("status", {
-            type: "channel",
-            common: {
-                name: "Schedule Status"
-            },
-            native: {}
-        });
-
-        await this.setObjectNotExistsAsync("status.isActive", {
-            type: "state",
-            common: {
-                name: "Schedule Active",
-                type: "boolean",
-                role: "indicator",
-                read: true,
-                write: false
-            },
-            native: {}
-        });
-
-        await this.setObjectNotExistsAsync("status.nextSwitch", {
-            type: "state",
-            common: {
-                name: "Next Switch Time",
-                type: "string",
-                role: "text",
-                read: true,
-                write: false
-            },
-            native: {}
-        });
-
-        await this.setObjectNotExistsAsync("status.scheduleDetails", {
-            type: "state",
-            common: {
-                name: "Complete Schedule Details",
-                type: "string",
-                role: "json",
-                read: true,
-                write: false
-            },
-            native: {}
-        });
-
-        await this.setObjectNotExistsAsync("control", {
-            type: "channel",
-            common: {
-                name: "Schedule Control"
-            },
-            native: {}
-        });
-
-        await this.setObjectNotExistsAsync("control.createSchedule", {
-            type: "state",
-            common: {
-                name: "Create New Schedule",
-                type: "boolean",
-                role: "button",
-                read: false,
-                write: true
-            },
-            native: {}
-        });
+            await this.setObjectNotExistsAsync("status", {
+                type: "channel",
+                common: {
+                    name: "Schedule Status"
+                },
+                native: {}
+            });
+    
+            await this.setObjectNotExistsAsync("control", {
+                type: "channel",
+                common: {
+                    name: "Schedule Control"
+                },
+                native: {}
+            });
+    
+            // Warte kurz
+            await new Promise(resolve => setTimeout(resolve, 1000));
+    
+            // Erstelle dann die States
+            const states = {
+                "requirements.energyDemand": {
+                    name: "Energy Demand",
+                    type: "number",
+                    role: "value",
+                    unit: "kWh",
+                    read: true,
+                    write: true
+                },
+                "requirements.maxLoad": {
+                    name: "Maximum Load",
+                    type: "number",
+                    role: "value",
+                    unit: "W",
+                    read: true,
+                    write: true
+                },
+                "requirements.avgLoad": {
+                    name: "Average Load",
+                    type: "number",
+                    role: "value",
+                    unit: "W",
+                    read: true,
+                    write: true
+                },
+                "status.isActive": {
+                    name: "Schedule Active",
+                    type: "boolean",
+                    role: "indicator",
+                    read: true,
+                    write: false
+                },
+                "status.nextSwitch": {
+                    name: "Next Switch Time",
+                    type: "string",
+                    role: "text",
+                    read: true,
+                    write: false
+                },
+                "status.scheduleId": {
+                    name: "Current Schedule ID",
+                    type: "string",
+                    role: "text",
+                    read: true,
+                    write: false
+                },
+                "status.scheduleDetails": {
+                    name: "Complete Schedule Details",
+                    type: "string",
+                    role: "json",
+                    read: true,
+                    write: false
+                },
+                "control.createSchedule": {
+                    name: "Create New Schedule",
+                    type: "boolean",
+                    role: "button",
+                    read: false,
+                    write: true
+                }
+            };
+    
+            // Erstelle alle States
+            for (const [id, common] of Object.entries(states)) {
+                await this.setObjectNotExistsAsync(id, {
+                    type: "state",
+                    common: common,
+                    native: {}
+                });
+            }
+    
+            this.log.info("All states created successfully");
+        } catch (error) {
+            this.log.error(`Error creating states: ${error.message}`);
+            throw error;
+        }
     }
 
     async createInitialSchedule() {
         try {
+            // Warte kurz, bis alle States erstellt sind
+            await new Promise(resolve => setTimeout(resolve, 2000));
+    
+            this.log.info("Checking for existing requirements...");
+            
             const energyDemand = await this.getStateAsync("requirements.energyDemand");
             const maxLoad = await this.getStateAsync("requirements.maxLoad");
             const avgLoad = await this.getStateAsync("requirements.avgLoad");
-
-            if (energyDemand && maxLoad && avgLoad) {
+    
+            // Prüfe, ob die States existieren UND Werte haben
+            if (energyDemand && maxLoad && avgLoad &&
+                energyDemand.val !== null && 
+                maxLoad.val !== null && 
+                avgLoad.val !== null) {
+                    
+                this.log.info(`Found existing requirements: Energy=${energyDemand.val}, Max=${maxLoad.val}, Avg=${avgLoad.val}`);
+                
+                // Erstelle Schedule mit den gefundenen Werten
                 await this.createSchedule({
                     requirements: {
                         energyDemand: energyDemand.val,
@@ -217,9 +232,26 @@ class EnergySchedule extends utils.Adapter {
                         avgLoad: avgLoad.val
                     }
                 });
+            } else {
+                this.log.info("No complete requirements found for initial schedule");
+                
+                // Setze Default-Werte
+                await this.setStateAsync("requirements.energyDemand", { val: 10, ack: true });
+                await this.setStateAsync("requirements.maxLoad", { val: 3500, ack: true });
+                await this.setStateAsync("requirements.avgLoad", { val: 2000, ack: true });
+                
+                // Erstelle Schedule mit Default-Werten
+                await this.createSchedule({
+                    requirements: {
+                        energyDemand: 10,
+                        maxLoad: 3500,
+                        avgLoad: 2000
+                    }
+                });
             }
         } catch (error) {
-            this.log.error(`Error creating initial schedule: ${error.message}`);
+            this.log.error(`Error in initial schedule creation: ${error.message}`);
+            if (error.stack) this.log.debug(`Stack: ${error.stack}`);
         }
     }
 
@@ -233,12 +265,12 @@ class EnergySchedule extends utils.Adapter {
             }
     
             const mergedRequirements = {
-                zip: this.config.zip,
-                coverageHours: this.config.coverageHours || 24,
+                zip: this.config.zip,                
                 requirements: {
                     law: this.config.law || "comfort",
                     activeHours: this.config.activeHours || 1,
                     consecutiveHours: this.config.consecutiveHours !== false,
+                    coverageHours: this.config.coverageHours || 23,
                     ...requirements.requirements
                 }
             };
@@ -295,39 +327,35 @@ async checkScheduleStatus() {
 
 
     isCurrentlyActive(schedule) {
-        if (!schedule || !schedule.timeSlots) {
-            this.log.warn('Invalid schedule or no time slots in isCurrentlyActive check');
+        try {
+            // Prüfe ob schedule und seine Eigenschaften existieren
+            if (!schedule?.schedule?.currentRecommendation?.currentPowerState) {
+                this.log.warn('No currentPowerState found in currentRecommendation');
+                return false;
+            }
+
+            return schedule.schedule.currentRecommendation.currentPowerState === 'on';
+        } catch (error) {
+            this.log.error(`Error in isCurrentlyActive: ${error.message}`);
             return false;
         }
-        
-        const now = new Date();
-        const isActive = schedule.timeSlots.some(slot => {
-            const startTime = new Date(slot.startTime);
-            const endTime = new Date(slot.endTime);
-            return now >= startTime && now < endTime;
-        });
-
-        this.log.debug(`Active status check: ${isActive} for schedule ${schedule.scheduleId}`);
-        return isActive;
     }
 
     findNextSwitchTime(schedule) {
-        const now = new Date();
-        const activeSlots = schedule.timeSlots || [];
-        
-        for (const slot of activeSlots) {
-            const startTime = new Date(slot.startTime);
-            const endTime = new Date(slot.endTime);
-            
-            if (now >= startTime && now < endTime) {
-                return endTime;
-            } else if (now < startTime) {
-                return startTime;
+        try {
+            // Prüfe ob schedule und seine Eigenschaften existieren
+            if (!schedule?.schedule?.currentRecommendation?.nextSwitch) {
+                this.log.warn('No nextSwitch found in currentRecommendation');
+                return new Date();
             }
+    
+            return new Date(schedule.schedule.currentRecommendation.nextSwitch);
+        } catch (error) {
+            this.log.error(`Error in findNextSwitchTime: ${error.message}`);
+            return new Date();
         }
-        
-        return new Date(activeSlots[0]?.startTime || now);
     }
+    
 // Verbesserte updateScheduleStates Funktion
 async updateScheduleStates() {
     try {
@@ -339,12 +367,10 @@ async updateScheduleStates() {
             return;
         }
 
-        this.log.info(`Updating states for schedule ${this.currentSchedule.scheduleId}`);
-
         const isActive = this.isCurrentlyActive(this.currentSchedule);
         const nextSwitch = this.findNextSwitchTime(this.currentSchedule);
 
-        this.log.debug(`Status update - isActive: ${isActive}, nextSwitch: ${nextSwitch}`);
+        this.log.debug(`Status update - isActive: ${isActive}, nextSwitch: ${nextSwitch}, currentPowerState: ${this.currentSchedule.schedule.currentRecommendation.currentPowerState}`);
 
         const updatePromises = [
             this.setStateAsync("status.isActive", { val: isActive, ack: true }),
@@ -360,15 +386,7 @@ async updateScheduleStates() {
         ];
 
         await Promise.all(updatePromises);
-        this.log.info('States updated successfully');
-
-        // Debug output of current state values
-        const stateValues = {
-            isActive: await this.getStateAsync("status.isActive"),
-            nextSwitch: await this.getStateAsync("status.nextSwitch"),
-            scheduleId: await this.getStateAsync("status.scheduleId")
-        };
-        this.log.debug(`Current state values: ${JSON.stringify(stateValues)}`);
+        this.log.debug('States updated successfully');
 
     } catch (error) {
         this.log.error(`Error updating states: ${error.message}`);

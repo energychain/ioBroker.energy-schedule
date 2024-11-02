@@ -22,7 +22,7 @@
             // Fill in the fields
             $('#zip').val(settings.zip || '');
             $('#personalToken').val(settings.personalToken || '');
-            $('#law').val(settings.law || 'comfort');
+            $('input[name="law"][value="' + (settings.law || 'comfort') + '"]').prop('checked', true);
             $('#activeHours').val(settings.activeHours || '1');
             $('#coverageHours').val(settings.coverageHours || '24');
             $('#consecutiveHours').prop('checked', settings.consecutiveHours !== false);
@@ -36,7 +36,9 @@
             // Register onChange handlers
             $('#zip').on('change', () => onChange());
             $('#personalToken').on('change', () => onChange());
-            $('#law').on('change', () => onChange());
+            $('input[name="law"]').on('change', function() {
+                onChange();
+            });
             $('#activeHours').on('change', () => onChange());
             $('#coverageHours').on('change', () => onChange());
             $('#consecutiveHours').on('change', () => onChange());
@@ -49,13 +51,12 @@
             // Get all the settings
             var obj = {
                 zip: $('#zip').val(),
-                personalToken: $('#personalToken').val(),
-                law: $('#law').val(),
+                personalToken: $('#personalToken').val(),                
                 activeHours: parseInt($('#activeHours').val()) || 1,
                 coverageHours: parseInt($('#coverageHours').val()) || 24,
                 consecutiveHours: $('#consecutiveHours').prop('checked')
             };
-
+            obj.law = $('input[name="law"]:checked').val();
             // Save the settings
             callback(obj);
         }
@@ -82,12 +83,25 @@
                 </div>
                 <div class="row">
                     <div class="input-field col s12 m6 l4">
-                        <select class="value" id="law">
-                            <option value="comfort" class="translate">Comfort</option>
-                            <option value="price" class="translate">Price</option>
-                            <option value="co2" class="translate">CO2</option>
-                        </select>
-                        <label for="law" class="translate">Optimization Strategy</label>
+                        <p class="translate" style="margin-bottom: 10px;">Optimization Strategy</p>
+                        <p>
+                            <label>
+                                <input class="value" name="law" type="radio" id="law_comfort" value="comfort" checked />
+                                <span class="translate">Comfort</span>
+                            </label>
+                        </p>
+                        <p>
+                            <label>
+                                <input class="value" name="law" type="radio" id="law_price" value="price" />
+                                <span class="translate">Price</span>
+                            </label>
+                        </p>
+                        <p>
+                            <label>
+                                <input class="value" name="law" type="radio" id="law_co2" value="co2" />
+                                <span class="translate">CO2</span>
+                            </label>
+                        </p>
                     </div>
                 </div>
                 <div class="row">

@@ -1,8 +1,12 @@
 {
     "common": {
         "name": "energy-schedule",
-        "version": "0.5.3",
+        "version": "0.5.4",
         "news": {
+            "0.5.4": {
+                "en": "Use current Recommendation from API",
+                "de": "Aktuelle Empfehlung von API übernommen"
+            },
             "0.5.3": {
                 "en": "Compliance update",
                 "de": "Richtlinienaktualisierung"
